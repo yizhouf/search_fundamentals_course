@@ -91,6 +91,7 @@ def main(source_dir: str, index_name: str):
 
             #### Step 2.b: Create a valid OpenSearch Doc and bulk index 2000 docs at a time
             the_doc = None
+            
             docs.append(the_doc)
     toc = time.perf_counter()
     logger.info(f'Done. Total docs: {docs_indexed}.  Total time: {((toc - tic) / 60):0.3f} mins.')

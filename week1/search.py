@@ -113,21 +113,82 @@ def create_query(user_query, filters, sort="_score", sortDir="desc"):
     print("Query: {} Filters: {} Sort: {}".format(user_query, filters, sort))
     query_obj = {
         'size': 10,
+        # "query": {
+            # "bool": {
+            #     "must": [
+            #         {
+            #             "query_string": {
+            #                 "fields": ["name^100", "shortDescription^50", "longDescription^10", "department"],#[ "name^10", "shortDescription", "longDescription" ],
+            #                 "query": user_query,
+            #                 "phrase_slop": 3
+            #             }
+            #         }
+            #     ],
+            #     "filter": filters
+        #     # "match_all": {} # Replace me with a query that both searches and filters
+        #     }
+        # },
+        # "query": {
+        #     "boosting": {
+        #         "positive": {
+        #             "query_string": {
+        #                     "fields": ["name^100", "shortDescription^50", "longDescription^10", "department"],#[ "name^10", "shortDescription", "longDescription" ],
+        #                     "query": user_query,
+        #                     "phrase_slop": 3
+        #                 }
+        #         },
+        #         "negative": {
+        #             "term": {
+        #                 "text": "protect" #I do not think it works as intended, maybe the positive part needs to be tuned as well. Not simply copy/paste name^100... etc. 
+        #             }
+        #         },
+        #         "negative_boost": 1000
+        #     }
+        # },
         "query": {
-            "bool": {
-                "must": [
+            "function_score": {
+                "query": {
+                    "bool": {
+                        "must": [
+                            {
+                                "query_string": {
+                                    "fields": ["name^100", "shortDescription^50", "longDescription^10", "department"],#[ "name^10", "shortDescription", "longDescription" ],
+                                    "query": user_query,
+                                    "phrase_slop": 3
+                                }
+                            }
+                        ],
+                        "filter": filters
+                    }
+                },
+                "boost_mode": "multiply",
+                "score_mode": "avg",
+                "functions": [
                     {
-                        "query_string": {
-                            "fields": ["name^100", "shortDescription^50", "longDescription^10", "department"],#[ "name^10", "shortDescription", "longDescription" ],
-                            "query": user_query,
-                            "phrase_slop": 3
+                        "field_value_factor": {
+                            "field": "salesRankLongTerm",
+                            "modifier": "reciprocal",
+                            "missing": 100000000
+                        }
+                    },
+                    {
+                        "field_value_factor": {
+                            "field": "salesRankMediumTerm",
+                            "modifier": "reciprocal",
+                            "missing": 100000000
+                        }
+                    },
+                    {
+                        "field_value_factor": {
+                            "field": "salesRankShortTerm",
+                            "modifier": "reciprocal",
+                            "missing": 100000000
                         }
                     }
-                ],
-                "filter": filters
-            # "match_all": {} # Replace me with a query that both searches and filters
+                ]
             }
         },
+        "_source": ["productId", "name", "shortDescription", "longDescription", "department", "salesRankShortTerm", "salesRankMediumTerm", "salesRankLongTerm", "regularPrice", "image"], #if not including image, the UI will lose image. 
         "aggs": {
             #### Step 4.b.i: create the appropriate query and aggregations here
             "regularPrice": {

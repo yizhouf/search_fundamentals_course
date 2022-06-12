@@ -112,7 +112,7 @@ def main(source_dir: str, index_name: str):
             #             y = ""
             #     the_doc[x] = y
             
-            # the_doc['_id'] = the_doc['productId'][0] 
+            # the_doc['_id'] = the_doc.pop('productId')[0] #appears to generate wrong product total number, maybe replications?
             the_doc['_index'] = index_name
 
             docs.append(the_doc)

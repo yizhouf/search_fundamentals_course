@@ -60,7 +60,17 @@ def get_opensearch():
     auth = ('admin', 'admin')
 
     #### Step 2.a: Create a connection to OpenSearch
-    client = None
+    client = OpenSearch(
+        hosts = [{'host': host, 'port': port}],
+        http_compress = True, # enables gzip compression for request bodies
+        http_auth = auth,
+        # client_cert = client_cert_path,
+        # client_key = client_key_path,
+        use_ssl = True,
+        verify_certs = False,
+        ssl_assert_hostname = False,
+        ssl_show_warn = False,
+    )
     return client
 
 
@@ -71,6 +81,7 @@ def main(source_dir: str, index_name: str):
     client = get_opensearch()
     # To test on a smaller set of documents, change this glob to be more restrictive than *.xml
     files = glob.glob(source_dir + "/*.xml")
+    # files = ["/workspace/datasets/product_data/products/products_0001_2570_to_430420.xml", "/workspace/datasets/product_data/products/products_0039_3691865_to_3781982.xml"]
     docs_indexed = 0
     tic = time.perf_counter()
     for file in files:
@@ -90,9 +101,30 @@ def main(source_dir: str, index_name: str):
                 continue
 
             #### Step 2.b: Create a valid OpenSearch Doc and bulk index 2000 docs at a time
-            the_doc = None
+            the_doc = doc.copy()
+
+            # the_doc = {}
+            # for x,y in doc.items():
+            #     if isinstance(y, list):
+            #         if y:
+            #             y = ' '.join(y)
+            #         else:
+            #             y = ""
+            #     the_doc[x] = y
             
+            # the_doc['_id'] = the_doc['productId'][0] 
+            the_doc['_index'] = index_name
+
             docs.append(the_doc)
+
+            docs_indexed += 1
+            if len(docs) == 2000:
+                bulk(client, docs)
+                docs = []
+
+        if len(docs) > 0:
+            bulk(client, docs)
+
     toc = time.perf_counter()
     logger.info(f'Done. Total docs: {docs_indexed}.  Total time: {((toc - tic) / 60):0.3f} mins.')
 

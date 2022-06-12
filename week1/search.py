@@ -94,7 +94,10 @@ def query():
     print("query obj: {}".format(query_obj))
 
     #### Step 4.b.ii
-    response = None   # TODO: Replace me with an appropriate call to OpenSearch
+    response = opensearch.search(
+        body=query_obj,
+        index="bbuy_products"
+        )   # TODO: Replace me with an appropriate call to OpenSearch
     # Postprocess results here if you so desire
 
     #print(response)
@@ -111,11 +114,60 @@ def create_query(user_query, filters, sort="_score", sortDir="desc"):
     query_obj = {
         'size': 10,
         "query": {
-            "match_all": {} # Replace me with a query that both searches and filters
+            "bool": {
+                "must": [
+                    {
+                        "query_string": {
+                            "fields": ["name^100", "shortDescription^50", "longDescription^10", "department"],#[ "name^10", "shortDescription", "longDescription" ],
+                            "query": user_query,
+                            "phrase_slop": 3
+                        }
+                    }
+                ],
+                "filter": filters
+            # "match_all": {} # Replace me with a query that both searches and filters
+            }
         },
         "aggs": {
             #### Step 4.b.i: create the appropriate query and aggregations here
-
-        }
+            "regularPrice": {
+                "range": {
+                    "field": "regularPrice",
+                    "ranges": [
+                    { "to": 10.0 },
+                    { "from": 10.0, "to": 100.0 },
+                    { "from": 100.0, "to": 1000.0 },
+                    { "from": 1000.0 }
+                    ]
+                }
+            },
+            "department": {
+                "terms": {
+                    "field": "department.keyword",
+                    "size": 10,
+                    "missing": "N/A",
+                    "min_doc_count": 0
+                }
+            },
+            "missing_images": {
+                "missing": { "field": "image.keyword" }
+            }
+        },
+        "highlight": {
+            "fields": {
+                "name": {}, #"type": "plain" },
+                "shortDescription": {}, # "type": "plain" },
+                "longDescription": {} #"type": "plain" }
+            }
+        },
+        "sort": [
+            {sort: {"order": sortDir}},
+        ]#,
+        # "sort": [
+        #     {
+        #         "regularPrice": {"order": "asc"}, 
+        #         "name.keyword": {"order": "asc"} 
+        #     }
+        # ]
     }
     return query_obj

@@ -17,7 +17,7 @@ def create_app(test_config=None):
             priors = pd.read_csv(PRIOR_CLICKS_LOC)
             priors_gb = priors.groupby("query")
             app.config["priors_df"] = priors
-            app.config["priors_gb"] = priors_gb
+            app.config["priors_gb"] = priors_gb 
         #print(app.config)
     else:
         # load the test config if passed in
